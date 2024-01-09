@@ -25,6 +25,7 @@
 #include "ir/value.h"
 #include "frontend/parallel/auto_parallel/operator_costmodel.h"
 #include "frontend/parallel/ops_info/operator_info.h"
+#include "frontend/parallel/ops_info/activation_info.h"
 #include "frontend/parallel/ops_info/arithmetic_info.h"
 #include "frontend/parallel/strategy.h"
 
@@ -102,6 +103,37 @@ class MinMaxUpdatePerChannelInfo : public MinMaxUpdatePerLayerInfo {
   Status InferAsLossDivisor() override;
   Status InferForwardGroup();
   int64_t channel_axis_ = -1;
+};
+class QuantInfoBase : public ActivationOther {
+ public:
+  QuantInfoBase(const std::string &name, const Shapes &inputs_shape, const Shapes &outputs_shape,
+                const PrimitiveAttrs &attrs)
+      : ActivationOther(name, inputs_shape, outputs_shape, attrs, std::make_shared<identityCost>()) {}
+  ~QuantInfoBase() override = default;
+};
+
+class AntiQuantInfo : public QuantInfoBase {
+ public:
+  AntiQuantInfo(const std::string &name, const Shapes &inputs_shape, const Shapes &outputs_shape,
+                const PrimitiveAttrs &attrs)
+      : QuantInfoBase(name, inputs_shape, outputs_shape, attrs) {}
+  ~AntiQuantInfo() override = default;
+};
+
+class QuantInfo : public QuantInfoBase {
+ public:
+  QuantInfo(const std::string &name, const Shapes &inputs_shape, const Shapes &outputs_shape,
+            const PrimitiveAttrs &attrs)
+      : QuantInfoBase(name, inputs_shape, outputs_shape, attrs) {}
+  ~QuantInfo() override = default;
+};
+
+class DequantInfo : public ArithmeticBase {
+ public:
+  DequantInfo(const std::string &name, const Shapes &inputs_shape, const Shapes &outputs_shape,
+              const PrimitiveAttrs &attrs)
+      : ArithmeticBase(name, inputs_shape, outputs_shape, attrs, std::make_shared<identityCost>()) {}
+  ~DequantInfo() override = default;
 };
 }  // namespace parallel
 }  // namespace mindspore
