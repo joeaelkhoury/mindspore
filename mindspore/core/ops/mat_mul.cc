@@ -137,6 +137,9 @@ class MatMulInfer : public abstract::OpInferBase {
                               << "', the type of 'x2' should be same as 'x1', but got 'x1' with type Tensor["
                               << x_type->ToString() << "] and 'x2' with type Tensor[" << y_type->ToString() << "].";
     }
+    if (x_type->type_id() == TypeId::kNumberTypeInt8 || x_type->ToString() == "Tensor[Int8]") {
+      x_type = kInt32;
+    }
     if (primitive->HasAttr("cast_type")) {
       auto out_type = primitive->GetAttr("cast_type");
       MS_EXCEPTION_IF_NULL(out_type);

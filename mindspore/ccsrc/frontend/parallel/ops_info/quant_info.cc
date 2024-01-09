@@ -440,6 +440,9 @@ void MinMaxUpdatePerChannelInfo::ReComputeBatchSplitFlagList() {
   return;
 }
 
+REGISTER(AntiQuantInfo);
+REGISTER(QuantInfo);
+REGISTER(DequantInfo);
 REGISTER(FakeQuantPerLayerInfo);
 REGISTER(FakeQuantPerChannelInfo);
 REGISTER(MinMaxUpdatePerLayerInfo);

@@ -25,6 +25,7 @@
 #include "ir/value.h"
 #include "frontend/parallel/auto_parallel/operator_costmodel.h"
 #include "frontend/parallel/ops_info/operator_info.h"
+#include "frontend/parallel/ops_info/activation_info.h"
 #include "frontend/parallel/ops_info/arithmetic_info.h"
 #include "frontend/parallel/ops_info/activation_info.h"
 #include "frontend/parallel/strategy.h"
@@ -113,6 +114,14 @@ class QuantInfoBase : public ActivationOther {
   ~QuantInfoBase() override = default;
 };
 
+class AntiQuantInfo : public QuantInfoBase {
+ public:
+  AntiQuantInfo(const std::string &name, const Shapes &inputs_shape, const Shapes &outputs_shape,
+                const PrimitiveAttrs &attrs)
+      : QuantInfoBase(name, inputs_shape, outputs_shape, attrs) {}
+  ~AntiQuantInfo() override = default;
+};
+
 class QuantInfo : public QuantInfoBase {
  public:
   QuantInfo(const std::string &name, const Shapes &inputs_shape, const Shapes &outputs_shape,
@@ -128,7 +137,6 @@ class DequantInfo : public ArithmeticBase {
       : ArithmeticBase(name, inputs_shape, outputs_shape, attrs, std::make_shared<identityCost>()) {}
   ~DequantInfo() override = default;
 };
-
 }  // namespace parallel
 }  // namespace mindspore
 #endif  // MINDSPORE_CCSRC_FRONTEND_PARALLEL_OPS_INFO_QUANT_INFO_H_
