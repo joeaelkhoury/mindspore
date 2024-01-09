@@ -137,6 +137,9 @@ class MatMulInfer : public abstract::OpInferBase {
                               << "', the type of 'x2' should be same as 'x1', but got 'x1' with type Tensor["
                               << x_type->ToString() << "] and 'x2' with type Tensor[" << y_type->ToString() << "].";
     }
+    if (x_type->type_id() == TypeId::kNumberTypeInt8 || x_type->ToString() == "Tensor[Int8]") {
+      x_type = kInt32;
+    }
     if (primitive->HasAttr("cast_type")) {
       auto out_type = primitive->GetAttr("cast_type");
       MS_EXCEPTION_IF_NULL(out_type);
@@ -155,7 +158,7 @@ class MatMulInfer : public abstract::OpInferBase {
     } else if (device_target == kGPUDevice) {
       valid_types = {kInt32, kFloat16, kFloat32, kFloat64, kComplex64, kComplex128};
     } else {
-      valid_types = {kUInt8, kInt32, kInt64, kFloat16, kFloat32, kBFloat16};
+      valid_types = {kUInt8, kInt8, kInt32, kInt64, kFloat16, kFloat32, kBFloat16};
     }
     std::map<std::string, TypePtr> types;
     (void)types.emplace("x", input_args[kInputIndex0]->GetType());
