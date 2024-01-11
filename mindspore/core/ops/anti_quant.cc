@@ -41,8 +41,8 @@ namespace {
 BaseShapePtr AntiQuantInferShape(const PrimitivePtr &primitive, const std::vector<AbstractBasePtr> &input_args) {
   MS_EXCEPTION_IF_NULL(primitive);
   auto prim_name = primitive->name();
-  constexpr int64_t kNumber1 = 1;
-  (void)CheckAndConvertUtils::CheckInteger("input number", SizeToLong(input_args.size()), kEqual, kNumber1, prim_name);
+  constexpr int64_t kNumber3 = 3;
+  (void)CheckAndConvertUtils::CheckInteger("input number", SizeToLong(input_args.size()), kEqual, kNumber3, prim_name);
   MS_EXCEPTION_IF_NULL(input_args[kInputIndex0]);
   (void)CheckAndConvertUtils::CheckArgsType(prim_name, input_args, kInputIndex0, kObjectTypeTensorType);
   auto x = input_args[kInputIndex0]->GetShape();
@@ -72,7 +72,7 @@ AbstractBasePtr AntiQuantInfer(const abstract::AnalysisEnginePtr &, const Primit
   for (auto &input : input_args) {
     MS_EXCEPTION_IF_NULL(input);
   }
-  const int64_t input_num = 1;
+  const int64_t input_num = 3;
   CheckAndConvertUtils::CheckInputArgs(input_args, kEqual, input_num, prim_name);
   auto types = AntiQuantInferType(primitive, input_args);
   auto shapes = AntiQuantInferShape(primitive, input_args);
