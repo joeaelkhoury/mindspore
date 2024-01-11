@@ -36,11 +36,9 @@ ATTR_MAP(AscendDequant) = {{"sqrt_mode", ATTR_DESC(sqrt_mode, AnyTraits<bool>())
 OUTPUT_MAP(AscendDequant) = {{0, OUTPUT_DESC(y)}};
 REG_ADPT_DESC(AscendDequant, kNameAscendDequant, ADPT_DESC(AscendDequant))
 
-INPUT_MAP(AscendAntiQuant) = {{1, INPUT_DESC(x)}};
-ATTR_MAP(AscendAntiQuant) = {{"scale", ATTR_DESC(scale, AnyTraits<float>())},
-                             {"offset", ATTR_DESC(offset, AnyTraits<float>())},
-                             {"sqrt_mode", ATTR_DESC(sqrt_mode, AnyTraits<bool>())},
-                             {"dtype", ATTR_DESC(dtype, AnyTraits<GEType>())}};
-OUTPUT_MAP(AscendAntiQuant) = {{0, OUTPUT_DESC(y)}};
-REG_ADPT_DESC(AscendAntiQuant, kNameAscendAntiQuant, ADPT_DESC(AscendAntiQuant))
+INPUT_MAP(AscendAntiQuantV2) = {{1, INPUT_DESC(x)}, {2, INPUT_DESC(scale)}, {3, INPUT_DESC(offset)}};
+ATTR_MAP(AscendAntiQuantV2) = {{"sqrt_mode", ATTR_DESC(sqrt_mode, AnyTraits<bool>())},
+                               {"dtype", ATTR_DESC(dst_type, AnyTraits<GEType>())}};
+OUTPUT_MAP(AscendAntiQuantV2) = {{0, OUTPUT_DESC(y)}};
+REG_ADPT_DESC(AscendAntiQuantV2, kNameAscendAntiQuant, ADPT_DESC(AscendAntiQuantV2))
 }  // namespace mindspore::transform

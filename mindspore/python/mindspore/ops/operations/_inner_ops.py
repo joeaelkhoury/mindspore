@@ -208,10 +208,10 @@ class Dequant(PrimitiveWithInfer):
     """
 
     @prim_attr_register
-    def __init__(self, sqrt_mode=False, relu_flag=False):
+    def __init__(self, sqrt_mode=False, relu_flag=False, dtype=mstype.float16):
         self.sqrt_mode = validator.check_value_type("sqrt_mode", sqrt_mode, [bool], self.name)
         self.relu_flag = validator.check_value_type("relu_flag", relu_flag, [bool], self.name)
-        self.add_prim_attr("dtype", mstype.float16)
+        self.dtype = dtype
 
     def infer_shape(self, x_shape, deq_scale_shape):
         return x_shape
@@ -261,14 +261,12 @@ class AntiQuant(Primitive):
     """
 
     @prim_attr_register
-    def __init__(self, scale, offset, sqrt_mode=False):
-        self.scale = validator.check_value_type("scale", scale, [float], self.name)
-        self.offset = validator.check_value_type("offset", offset, [float], self.name)
+    def __init__(self, sqrt_mode=False, dtype=mstype.float16):
         self.sqrt_mode = validator.check_value_type("sqrt_mode", sqrt_mode, [bool], self.name)
+        self.dtype = dtype
 
-        self.init_prim_io_names(inputs=['x'],
+        self.init_prim_io_names(inputs=['x', 'scale', 'offset'],
                                 outputs=['y'])
-        self.add_prim_attr("dtype", mstype.float16)
 
 
 class MatrixDiag(PrimitiveWithInfer):
