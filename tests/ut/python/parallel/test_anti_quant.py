@@ -25,12 +25,12 @@ def setup_function():
 
 
 class AntiQuantNet(Cell):
-    def __init__(self, scale, offset, sqrt_mode, strategy):
+    def __init__(self, sqrt_mode, strategy):
         super().__init__()
-        self.anti_quant = AntiQuant(scale, offset, sqrt_mode).shard(strategy)
+        self.anti_quant = AntiQuant(sqrt_mode).shard(strategy)
 
-    def construct(self, data):
-        out = self.anti_quant(data)
+    def construct(self, data, scale, offset):
+        out = self.anti_quant(data, scale, offset)
         return out
 
 
@@ -42,17 +42,22 @@ def test_anti_quant_1D():
     """
     context.set_auto_parallel_context(parallel_mode="semi_auto_parallel", device_num=4, global_rank=0)
 
-    strategy = ((4,),)
+    strategy = ((4,), (1,), (1,))
 
-    net = AntiQuantNet(2.0, 1.0, False, strategy)
+    net = AntiQuantNet(False, strategy)
 
     data = Parameter(Tensor(np.ones([4096]), dtype=ms.int8), "data")
-    net.set_inputs(data)
+    scale = Parameter(Tensor(np.ones([1]), dtype=ms.float32), "scale")
+    offset = Parameter(Tensor(np.ones([1]), dtype=ms.float32), "offset")
 
-    phase = compile_net(net, data)
+    net.set_inputs(data, scale, offset)
+
+    phase = compile_net(net, data, scale, offset)
     validator = ParallelValidator(net, phase)
 
     assert validator.check_parameter_shape("data", [1024])
+    assert validator.check_parameter_shape("scale", [1])
+    assert validator.check_parameter_shape("offset", [1])
 
 
 def test_anti_quant_2D():
@@ -63,17 +68,22 @@ def test_anti_quant_2D():
     """
     context.set_auto_parallel_context(parallel_mode="semi_auto_parallel", device_num=4, global_rank=0)
 
-    strategy = ((4, 1),)
+    strategy = ((4, 1,), (1,), (1,))
 
-    net = AntiQuantNet(2.0, 1.0, False, strategy)
+    net = AntiQuantNet(False, strategy)
 
-    data = Parameter(Tensor(np.ones([4, 1024]), dtype=ms.int8), "data")
-    net.set_inputs(data)
+    data = Parameter(Tensor(np.ones([4096, 512]), dtype=ms.int8), "data")
+    scale = Parameter(Tensor(np.ones([512]), dtype=ms.float32), "scale")
+    offset = Parameter(Tensor(np.ones([512]), dtype=ms.float32), "offset")
 
-    phase = compile_net(net, data)
+    net.set_inputs(data, scale, offset)
+
+    phase = compile_net(net, data, scale, offset)
     validator = ParallelValidator(net, phase)
 
-    assert validator.check_parameter_shape("data", [1, 1024])
+    assert validator.check_parameter_shape("data", [1024, 512])
+    assert validator.check_parameter_shape("scale", [512])
+    assert validator.check_parameter_shape("offset", [512])
 
 def test_anti_quant_3D():
     """
@@ -83,17 +93,22 @@ def test_anti_quant_3D():
     """
     context.set_auto_parallel_context(parallel_mode="semi_auto_parallel", device_num=4, global_rank=0)
 
-    strategy = ((4, 1, 1),)
+    strategy = ((2, 1, 2), (2,), (2,))
 
-    net = AntiQuantNet(2.0, 1.0, False, strategy)
+    net = AntiQuantNet(False, strategy)
 
-    data = Parameter(Tensor(np.ones([4, 1024, 1024]), dtype=ms.int8), "data")
-    net.set_inputs(data)
+    data = Parameter(Tensor(np.ones([4096, 512, 512]), dtype=ms.int8), "data")
+    scale = Parameter(Tensor(np.ones([512]), dtype=ms.float32), "scale")
+    offset = Parameter(Tensor(np.ones([512]), dtype=ms.float32), "offset")
 
-    phase = compile_net(net, data)
+    net.set_inputs(data, scale, offset)
+
+    phase = compile_net(net, data, scale, offset)
     validator = ParallelValidator(net, phase)
 
-    assert validator.check_parameter_shape("data", [1, 1024, 1024])
+    assert validator.check_parameter_shape("data", [2048, 512, 256])
+    assert validator.check_parameter_shape("scale", [256])
+    assert validator.check_parameter_shape("offset", [256])
 
 def test_anti_quant_4D():
     """
@@ -103,14 +118,19 @@ def test_anti_quant_4D():
     """
     context.set_auto_parallel_context(parallel_mode="semi_auto_parallel", device_num=4, global_rank=0)
 
-    strategy = ((2, 1, 1, 2),)
+    strategy = ((2, 1, 2, 1), (1,), (1,))
 
-    net = AntiQuantNet(2.0, 1.0, False, strategy)
+    net = AntiQuantNet(False, strategy)
 
-    data = Parameter(Tensor(np.ones([4, 128, 128, 128]), dtype=ms.int8), "data")
-    net.set_inputs(data)
+    data = Parameter(Tensor(np.ones([128, 32, 32, 32]), dtype=ms.int8), "data")
+    scale = Parameter(Tensor(np.ones([1]), dtype=ms.float32), "scale")
+    offset = Parameter(Tensor(np.ones([1]), dtype=ms.float32), "offset")
 
-    phase = compile_net(net, data)
+    net.set_inputs(data, scale, offset)
+
+    phase = compile_net(net, data, scale, offset)
     validator = ParallelValidator(net, phase)
 
-    assert validator.check_parameter_shape("data", [2, 128, 128, 64])
+    assert validator.check_parameter_shape("data", [64, 32, 16, 32])
+    assert validator.check_parameter_shape("scale", [1])
+    assert validator.check_parameter_shape("offset", [1])

@@ -30,8 +30,10 @@ class MIND_API AntiQuant : public BaseOperator {
  public:
   MIND_API_BASE_MEMBER(AntiQuant);
   /// \brief Constructor.
-  AntiQuant() : BaseOperator(kNameAntiQuant) { InitIOName({"x"}, {"output"}); }
-  explicit AntiQuant(const std::string k_name) : BaseOperator(k_name) { InitIOName({"x"}, {"output"}); }
+  AntiQuant() : BaseOperator(kNameAntiQuant) { InitIOName({"x", "scale", "offset"}, {"output"}); }
+  explicit AntiQuant(const std::string k_name) : BaseOperator(k_name) {
+    InitIOName({"x", "scale", "offset"}, {"output"});
+  }
   /// \brief Init.
   void Init() const {}
 };
