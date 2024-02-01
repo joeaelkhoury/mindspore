@@ -848,6 +848,7 @@ REGISTER(DropoutInfo);
 REGISTER(HShrinkInfo);
 REGISTER(HSigmoidInfo);
 REGISTER(IsFiniteInfo);
+REGISTER(GenerateEodMaskInfo);
 REGISTER(MishInfo);
 REGISTER(RintInfo);
 REGISTER(SeLUInfo);
