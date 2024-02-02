@@ -19,6 +19,7 @@
 #include "pipeline/jit/pi/graph_capture/local_liveness.h"
 #include "pipeline/jit/pi/graph_capture/graph.h"
 #include "pipeline/jit/pi/graph_capture/cfg.h"
+#include "pipeline/jit/pi/graph_capture/side_effect.h"
 #include "pipeline/jit/pi/utils/utils.h"
 #include "pipeline/jit/pi/common.h"
 #include "pipeline/jit/pi/external.h"
@@ -544,7 +545,7 @@ void CodeGenerator::AddInstrs(std::vector<std::unique_ptr<Instr>> &&l) {
   code_.co_code.insert(code_.co_code.end(), std::make_move_iterator(l.begin()), std::make_move_iterator(l.end()));
 }
 
-void CodeGenerator::LoadValue(ValueNode *node) {
+void CodeGenerator::LoadValue(ValueNode *node, bool is_side_effect) {
   auto iter = locals_map_.find(node);
   if (iter != locals_map_.end()) {
     NewInstr(LOAD_FAST, iter->second);
@@ -596,6 +597,12 @@ void CodeGenerator::LoadValue(ValueNode *node) {
     return;
   }
   MS_LOG(INTERNAL_EXCEPTION) << "missing value, [" << node->ToString() << "]";
+  if (is_side_effect == true) {
+    auto it = locals_map_.find(node);
+    if (it != locals_map_.end()) {
+      locals_map_.erase(it);
+    }
+  }
 }
 
 void CodeGenerator::BuildOper(ValueNode *node, int index) {
@@ -799,6 +806,35 @@ void CodeBreakGenerator::RestoreLocals(CodeGenerator *code_gen, bool only_load) 
   code_gen->AddInstrs(std::move(st));
 }
 
+void CodeBreakGenerator::CallSideEffectCode(CodeGenerator *code_gen, Graph *graph) {
+  for (auto &item : graph->GetSideEffectNodes()) {
+    if (item->GetOpcode() == BUILD_LIST) {
+      code_gen->NewInstr(LOAD_FAST, 0);
+      code_gen->LoadValue(item, true);
+      code_gen->NewInstr(LOAD_CONST, 0);
+      code_gen->GetCode().co_code.back()->set_cnst(py::none());
+      code_gen->NewInstr(LOAD_CONST, 0);
+      code_gen->GetCode().co_code.back()->set_cnst(py::none());
+      code_gen->NewInstr(BUILD_SLICE, 0);
+      code_gen->NewInstr(STORE_SUBSCR, 0);
+      interpret_.outputs.erase(std::remove(interpret_.outputs.begin(), interpret_.outputs.end(), item),
+                               interpret_.outputs.end());
+      for (auto input : item->getInputs()) {
+        interpret_.outputs.erase(std::remove(interpret_.outputs.begin(), interpret_.outputs.end(), input),
+                                 interpret_.outputs.end());
+      }
+
+    } else {
+      for (auto input : item->getInputs()) {
+        code_gen->LoadValue(input, true);
+        interpret_.outputs.erase(std::remove(interpret_.outputs.begin(), interpret_.outputs.end(), input),
+                                 interpret_.outputs.end());
+      }
+      code_gen->NewInstr(item->GetOpcode(), item->GetOparg());
+    }
+  }
+}
+
 py::object CodeBreakGenerator::MakeUntrackedCode(int untracked_bci, int untracked_stack_effect) const {
   const int argc = interpret_.outputs.size() + untracked_stack_effect;
   int stack_count = argc - alive_locals_.size();
@@ -995,7 +1031,7 @@ void CodeBreakGenerator::CallUntrackedCode(CodeGenerator *code_gen) {
   code_gen->NewInstr(RETURN_VALUE);
 }
 
-py::object CodeBreakGenerator::MakeCode(bool make_graph) {
+py::object CodeBreakGenerator::MakeCode(bool make_graph, Graph *graph) {
   auto jcr = getJitCompileResults(reinterpret_cast<PyObject *>(co_), false);
 
   if (make_graph) {
@@ -1016,6 +1052,9 @@ py::object CodeBreakGenerator::MakeCode(bool make_graph) {
   CallCapturedCode(&code_gen);
   FixInterpretOuput(&code_gen);
   // ... handle side effects
+  if (make_graph == false) {
+    CallSideEffectCode(&code_gen, graph);
+  }
   CallUntrackedCode(&code_gen);
   MakeReturn(&code_gen);
 
@@ -1090,7 +1129,14 @@ static std::vector<ValueNode *> CollectGraphOutputs(const std::set<ValueNode *> 
 void CodeBreakGenerator::Init(const Graph *graph, const GraphAnalyzer::CapturedInfo *info) {
   break_bci_ = graph->GetStopTraceBci();
   cfg_ = graph->GetCFG().get();
-  std::vector<ValueNode *> alive_nodes = graph->CollectAliveNode(break_bci_, &alive_locals_);
+  auto liveness = graph->GetCFG()->GetLiveness();
+  std::vector<ValueNode *> alive_nodes = liveness->CollectAliveNode(graph, break_bci_, &alive_locals_);
+
+  std::transform(graph->GetSideEffectNodes().begin(), graph->GetSideEffectNodes().end(),
+                 std::back_inserter(alive_nodes), [](ValueNode *valueNode) { return valueNode; });
+  std::transform(graph->GetSideEffectReplacedList().begin(), graph->GetSideEffectReplacedList().end(),
+                 std::back_inserter(alive_nodes), [](ValueNode *valueNode) { return valueNode; });
+
   interpret_.inputs = graph->GetFrame(0).GetLocals();
   interpret_.outputs = std::move(alive_nodes);
   interpret_.operations = info->ordered_escaped_locals;
@@ -1400,7 +1446,7 @@ py::object MakeCodeFromCodeGen(const GraphBuilderPtr &builder, const GraphAnalyz
   auto cg = CodeBreakGenerator::Creator(builder, graph->GetCodeObj());
   cg->Init(graph, &info);
   cg->SetGlobals(py::cast<py::dict>(globals));
-  py::object code = cg->MakeCode(!analyzer->NeedInterpret());
+  py::object code = cg->MakeCode(!analyzer->NeedInterpret(), graph);
   return code;
 }
 
@@ -1485,7 +1531,7 @@ py::object MindCodeBreakGenerator::MakeCopyCode(const std::string &co_name, int 
   return copy_code;
 }
 
-py::object MindCodeBreakGenerator::MakeCode(bool make_graph) {
+py::object MindCodeBreakGenerator::MakeCode(bool make_graph, Graph *graph) {
   auto jcr = getJitCompileResults(reinterpret_cast<PyObject *>(co_), false);
 
   std::string co_name = PyUnicode_AsUTF8(co_->co_name);
