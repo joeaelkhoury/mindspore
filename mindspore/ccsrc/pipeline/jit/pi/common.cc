@@ -490,6 +490,22 @@ static bool GraphCapture(JitCompileResults *jcr) {
   }
   (void)g->TraceRun();
 
+  if (g->StackSize() > 0) {
+    auto block = g->PeekStack(0);
+    auto flag = block.withOrException;
+    if (flag) {
+      // something happend in with syntax
+      jcr->code->SetGuard(std::make_shared<OptGuard>());
+      jcr->conf->SetBool<GraphJitConfig::kSkipException>(Py_True);
+      bool code_change = GraphCapture(jcr);
+      g->GetTryBlockStacks().clear();
+      jcr->conf->SetBool<GraphJitConfig::kSkipException>(Py_False);
+      return code_change;
+    } else {
+      // TODO : deal with try_exception in exception syntax
+    }
+  }
+
   if (g->GetGraph()->IsBreakAtLoop() && !g->GetGraph()->RestoreLoopStatus()) {
     jcr->stat = JitCompileResults::NEVER_COMPILE;
     AObject::aobject_mem_pool_.Clear(__FILE__, __LINE__);
