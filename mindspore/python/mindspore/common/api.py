@@ -26,6 +26,7 @@ import inspect
 import importlib
 import hashlib
 import contextlib
+import warnings
 from collections import OrderedDict, namedtuple
 from functools import wraps
 import numpy as np
@@ -730,23 +731,15 @@ def jit(fn=None, mode="PSJit", input_signature=None, hash_args=None, jit_config=
 
         return staging_specialize
 
-    def pi_wrap_mindspore(decorated):
-        func = decorated
-        if isinstance(func, ms.nn.Cell):
-            func = func.construct
-        if isinstance(func, type) and issubclass(func, ms.nn.Cell):
-            func = func.construct
-        if isinstance(func, types.MethodType):
-            func = func.__func__
-        if not isinstance(func, types.FunctionType):
-            logger.warning("only support function and mindspore.nn.Cell instance")
-            return decorated
+    def pi_wrap_mindspore(func):
+        if not isinstance(func, (types.FunctionType, types.MethodType)):
+            return func
 
         # generator, coroutine, awaitable and a function that return them is unsupported
         UNSUPPORTED_CODE_TYPE = (inspect.CO_GENERATOR | inspect.CO_COROUTINE |
                                  inspect.CO_ASYNC_GENERATOR | inspect.CO_ITERABLE_COROUTINE)
         if func.__code__.co_flags & UNSUPPORTED_CODE_TYPE:
-            return decorated
+            return func
 
         config = dict()
         if jit_config is not None:
@@ -754,9 +747,9 @@ def jit(fn=None, mode="PSJit", input_signature=None, hash_args=None, jit_config=
         jit_mode_pi_enable()
 
         if jit_mode_pi_compile(func, config) is False:
-            logger.warning('add fn {} to compile failed '.format(func))
+            warnings.warn('add fn {} to compile failed '.format(func))
 
-        return decorated
+        return func
 
     wrap_func = wrap_mindspore
     if mode == "PIJit":
