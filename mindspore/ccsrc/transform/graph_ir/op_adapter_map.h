@@ -526,6 +526,7 @@ constexpr const char kNameCoalesce[] = "Coalesce";
 constexpr const char kNameFFTWithSize[] = "FFTWithSize";
 constexpr const char kNameCumulativeLogsumexp[] = "CumulativeLogsumexp";
 constexpr const char kSilentCheck[] = "SilentCheck";
+
 class OpAdapterDesc;
 
 class OpAdapterMap {
