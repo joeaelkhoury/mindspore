@@ -18,6 +18,7 @@
 #define MINDSPORE_CCSRC_TRANSFORM_GRAPH_IR_OP_DECLARE_QUANTIZE_OPS_DECLARE_H_
 
 #include "op_proto/inc/quantize_ops.h"
+#include "op_proto/inc/fusion_ops.h"
 #include "transform/graph_ir/op_declare/op_declare_macro.h"
 #include "utils/hash_map.h"
 
@@ -32,4 +33,7 @@ DECLARE_OP_USE_OUTPUT(AscendAntiQuant)
 
 DECLARE_OP_ADAPTER(AscendAntiQuantV2)
 DECLARE_OP_USE_OUTPUT(AscendAntiQuantV2)
+
+DECLARE_OP_ADAPTER(WeightQuantBatchMatmulV2)
+DECLARE_OP_USE_OUTPUT(WeightQuantBatchMatmulV2)
 #endif  // MINDSPORE_CCSRC_TRANSFORM_GRAPH_IR_OP_DECLARE_QUANTIZE_OPS_DECLARE_H_
