@@ -82,6 +82,11 @@ def compile_net_no_bias(net, x, y):
 
 
 def test_no_grad():
+    """
+    Feature: test no grad
+    Description: dev_num is 8, test no grad.
+    Expectation: compile success
+    """
     class Net(nn.Cell):
         def __init__(self, strategy1, strategy2):
             super().__init__()
@@ -107,6 +112,11 @@ def test_no_grad():
 
 
 def test_grad_sens_parameter_type():
+    """
+    Feature: test grad sens parameter
+    Description: dev_num is 8, test grad sens parameter.
+    Expectation: compile success
+    """
     class Net(nn.Cell):
         def __init__(self, strategy1, strategy2):
             super().__init__()
@@ -130,15 +140,20 @@ def test_grad_sens_parameter_type():
     sens = Tensor(np.ones([128, 64]), dtype=ms.float32)
     net.set_train()
     _cell_graph_executor.compile(net, x, y, b, sens, phase='train')
-    x_layout = ([64], [-1, -1], [128, 32], 0, True, '')
-    y_layout = ([64], [-1, -1], [32, 64], 0, True, '')
-    b_layout = ([64], [-1, -1], [64, 64], 0, True, '')
-    sens_layout = ([8, 8], [1, -1], [16, 64], 0, True, '')
+    x_layout = ([64], [-1, -1], [128, 32], 0, True, '', [], [128, 32])
+    y_layout = ([64], [-1, -1], [32, 64], 0, True, '', [], [32, 64])
+    b_layout = ([64], [-1, -1], [64, 64], 0, True, '', [], [64, 64])
+    sens_layout = ([8, 8], [1, -1], [16, 64], 0, True, '', [], [16, 64])
     expect_dict = {'x': x_layout, 'y': y_layout, 'b': b_layout, 'sens': sens_layout}
     assert net.parameter_layout_dict == expect_dict
 
 
 def test_grad_sens_tensor_type():
+    """
+    Feature: test grad sens tensor type
+    Description: dev_num is 8, test grad sens tensor type.
+    Expectation: compile success
+    """
     class Net(nn.Cell):
         def __init__(self, strategy1, strategy2):
             super().__init__()
@@ -164,6 +179,11 @@ def test_grad_sens_tensor_type():
 
 
 def test_grad_sens_scalar_broadcast():
+    """
+    Feature: test grad sens scalar broadcast
+    Description: dev_num is 8, test grad sens scalar broadcast.
+    Expectation: compile success
+    """
     class Net(nn.Cell):
         def __init__(self, strategy0, strategy1):
             super().__init__()
