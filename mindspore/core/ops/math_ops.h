@@ -159,7 +159,7 @@ GVAR_DEF(PrimitivePtr, kPrimMatrixTriangularSolve, std::make_shared<Primitive>(k
 GVAR_DEF(PrimitivePtr, kPrimSelfAdjointEig, std::make_shared<Primitive>("SelfAdjointEig"));
 GVAR_DEF(PrimitivePtr, kPrimOrmqr, std::make_shared<Primitive>("Ormqr"));
 GVAR_DEF(PrimitivePtr, kPrimEps, std::make_shared<Primitive>(kEpsOpName));
-GVAR_DEF(PrimitivePtr, kPrimSilentCheckV2, std::make_shared<Primitive>("SilentCheckV2"));
+GVAR_DEF(PrimitivePtr, kPrimSilentCheck, std::make_shared<Primitive>("SilentCheck"));
 }  // namespace prim
 }  // namespace mindspore
 
