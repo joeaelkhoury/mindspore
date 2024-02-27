@@ -367,6 +367,7 @@ constexpr const char kNameAscendQuant[] = "Quant";
 constexpr const char kNameAscendDequant[] = "Dequant";
 constexpr const char kNameWeightQuantBatchMatmul[] = "WeightQuantBatchMatmul";
 constexpr const char kNameAscendAntiQuant[] = "AntiQuant";
+constexpr const char kNameQuantBatchMatmul[] = "QuantBatchMatmul";
 constexpr const char kNameCropAndResize[] = "CropAndResize";
 constexpr const char kNameReverseSequence[] = "ReverseSequence";
 constexpr const char kNameEditDistance[] = "EditDistance";
