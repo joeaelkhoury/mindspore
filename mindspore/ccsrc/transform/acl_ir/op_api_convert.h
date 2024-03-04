@@ -440,6 +440,8 @@ inline aclScalar *ConvertType(const ScalarPtr &value) {
     converter.ConvertValue(value, AttrDeclType<uint8_t>(), &acl_scalar);
   } else if (value->isa<FP64Imm>()) {
     converter.ConvertValue(value, AttrDeclType<double>(), &acl_scalar);
+  } else if (value->isa<BF16Imm>()) {
+    converter.ConvertValue(value, AttrDeclType<bfloat16>(), &acl_scalar);
   } else {
     MS_LOG(EXCEPTION) << "Currently not support value: " << value->ToString();
   }
@@ -602,6 +604,13 @@ void ReleaseConvertTypes(const Tuple &t) {
       out = std::make_shared<UInt8Imm>(static_cast<uint8_t>(num));          \
       break;                                                                \
     }                                                                       \
+<<<<<<< HEAD
+=======
+    case kNumberTypeBFloat16: {                                             \
+      out = std::make_shared<BF16Imm>(static_cast<bfloat16>(num));          \
+      break;                                                                \
+    }                                                                       \
+>>>>>>> b85a7e72b90... backend bf16.
     default: {                                                              \
       MS_LOG(EXCEPTION) << "Not support typeid " << TypeIdToString(typeid); \
     }                                                                       \
