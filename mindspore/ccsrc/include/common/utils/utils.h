@@ -361,6 +361,9 @@ constexpr char kAttrInputLayout[] = "input_layout";
 constexpr char kAttrKeepProb[] = "keep_prob";
 constexpr char kAttrHeadNum[] = "head_num";
 constexpr char kAttrSparseMode[] = "sparse_mode";
+constexpr char kAttrBranchOutputNum[] = "branch_output_num";
+constexpr char kAttrBranchGraphName[] = "branch_graph_name";
+constexpr char kInlineSubGraphName[] = "inline_sub_graph_name";
 
 // FuncGraph Flags
 constexpr auto kFlagIsPynativeBpropGraph = "is_pynative_bprop_graph";
