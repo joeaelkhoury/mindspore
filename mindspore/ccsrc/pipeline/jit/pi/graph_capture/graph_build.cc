@@ -35,6 +35,16 @@
 #include "ops/framework_ops.h"
 #include "ops/structure_ops.h"
 
+#ifndef PY_MINOR_VERSION
+#define PY_MINOR_VERSION 3.7
+#error "undefined PY_MINOR_VERSION"
+#endif // PY_MINOR_VERSION
+
+#ifndef PY_MAJOR_VERSION
+#define PY_MAJOR_VERSION 3.9
+#error "undefined PY_MAJOR_VERSION"
+#endif // PY_MAJOR_VERSION
+
 namespace mindspore {
 namespace pijit {
 extern TracePtr GetTrace(ValueNode *node, bool strict, bool print, int depth, int max_depth);
@@ -702,7 +712,8 @@ bool GraphBuilder::HandleSuper(const Instr &instr, AObject *super) {
     nodes.push_back(method_node);
 
     // call method type
-    py::tuple tuple_obj(2);
+    constexpr int second = 2;
+    py::tuple tuple_obj(second);
     tuple_obj[0] = m;
     tuple_obj[1] = self_super->GetVobj()->GetPyObject();
     PyObject *ret = PyObject_Call(mtype_obj, tuple_obj.ptr(), nullptr);
