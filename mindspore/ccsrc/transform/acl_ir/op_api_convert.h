@@ -604,13 +604,10 @@ void ReleaseConvertTypes(const Tuple &t) {
       out = std::make_shared<UInt8Imm>(static_cast<uint8_t>(num));          \
       break;                                                                \
     }                                                                       \
-<<<<<<< HEAD
-=======
     case kNumberTypeBFloat16: {                                             \
       out = std::make_shared<BF16Imm>(static_cast<bfloat16>(num));          \
       break;                                                                \
     }                                                                       \
->>>>>>> b85a7e72b90... backend bf16.
     default: {                                                              \
       MS_LOG(EXCEPTION) << "Not support typeid " << TypeIdToString(typeid); \
     }                                                                       \
