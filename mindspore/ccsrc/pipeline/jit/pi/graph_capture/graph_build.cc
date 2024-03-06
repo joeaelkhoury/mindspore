@@ -2278,7 +2278,6 @@ ValueNode *GetBoundSelf(CallNode *call_node) {
     case AObject::kTypeAnyValue:
       self = func_val;
       break;
-    case AObject::kTypeCFunction:
     case AObject::kTypeTraceNode:
     case AObject::kTypeFunction:
       break;
