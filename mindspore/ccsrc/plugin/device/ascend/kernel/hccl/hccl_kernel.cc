@@ -54,6 +54,8 @@ std::string MsOpNameToHcomOpType(const std::string &ms_op_type) {
 
 namespace mindspore {
 namespace kernel {
+int64_t op_tag = 0;
+
 void HcclKernelFactory::Register(const std::string &name, HcclKernelCreater &&fun) {
   hccl_kernel_map_.emplace(name, fun);
 }
