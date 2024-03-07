@@ -198,20 +198,23 @@ void MemoryManagerActor::AllocateSomasMemory(SomasInfo *const somas_info, const 
     std::string error_info = from_aid.Name() + " already has the base somas address.";
     SET_OPCONTEXT_FAIL_RET_WITH_ERROR((*op_context), error_info);
   }
-  try {
-    device::DynamicMemAllocatorDebugInfo::SetDebugInfo(from_aid.Name(), device::AllocatorType::kKernelOutput);
-    auto device_ptr = device_context->device_res_manager_->AllocateMemory(somas_info->whole_block_size_);
-    if (device_ptr == nullptr) {
-      MS_LOG(WARNING) << from_aid.Name()
-                      << " allocate somas whole block memory failed, alloc size: " << somas_info->whole_block_size_
-                      << ". Try to allocate the merged blocks memory.";
-    } else {
-      somas_info->base_address_ = device_ptr;
+  const bool force_no_inline = common::GetEnv("MS_FORCE_NO_INLINE") == "1";
+  if (!force_no_inline) {
+    try {
+      device::DynamicMemAllocatorDebugInfo::SetDebugInfo(from_aid.Name(), device::AllocatorType::kKernelOutput);
+      auto device_ptr = device_context->device_res_manager_->AllocateMemory(somas_info->whole_block_size_);
+      if (device_ptr == nullptr) {
+        MS_LOG(WARNING) << from_aid.Name()
+                        << " allocate somas whole block memory failed, alloc size: " << somas_info->whole_block_size_
+                        << ". Try to allocate the merged blocks memory.";
+      } else {
+        somas_info->base_address_ = device_ptr;
+        return;
+      }
+    } catch (const std::exception &e) {
+      SetOpContextMemoryAllocFail(from_aid.Name(), device_context, somas_info->whole_block_size_, op_context);
       return;
     }
-  } catch (const std::exception &e) {
-    SetOpContextMemoryAllocFail(from_aid.Name(), device_context, somas_info->whole_block_size_, op_context);
-    return;
   }
 
   // Allocate the merged blocks memory.
