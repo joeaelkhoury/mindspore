@@ -30,6 +30,7 @@ namespace ascend {
 using TensorType = somas::TensorType;
 using LifeLongType = somas::LifeLongType;
 constexpr size_t ALONE = 1;
+constexpr size_t kTensorsSize = 10;
 
 bool AclSomas::Initialize() { return true; }
 
@@ -148,7 +149,9 @@ void AclSomas::CommunicationTensorProcess(const std::vector<somas::SomasTensorPt
 
 bool AclSomas::NeedContiguous(const std::vector<size_t> &inputs) const { return inputs.size() > ALONE; }
 
-bool AclSomas::NeedReuseGraphOutput() const { return true; }
+bool AclSomas::NeedReuseGraphOutput() const {
+  return tensors_list_.size() > kTensorsSize;
+}
 }  // namespace ascend
 }  // namespace device
 }  // namespace mindspore
