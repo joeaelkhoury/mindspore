@@ -102,6 +102,8 @@ static inline void SetOMPThreadNum() {
 
   (void)SetEnv("GRAPH_OP_RUN", "1", 0);
   (void)SetEnv("MS_ENABLE_ACLNN", "1", 0);
+  (void)SetEnv("MS_ENABLE_SWITCH_INLINE", "1", 0);
+  (void)SetEnv("MS_ENABLE_RUNTIME_PIPELINE", "1", 0);
 }
 
 static inline bool IsLittleByteOrder() {
