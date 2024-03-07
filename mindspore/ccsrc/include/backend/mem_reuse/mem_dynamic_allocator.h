@@ -101,6 +101,7 @@ class BACKEND_EXPORT DynamicMemPoolBestFit {
   size_t TotalIdleMemStatistics() const;
   size_t TotalEagerFreeMemStatistics() const;
   size_t UsedMemPeakStatistics() const;
+  size_t ActualPeakStatistics() const;
 
   // Display the brief state information of memory block and memory buf.
   void DumpDynamicMemPoolStateInfo();
@@ -121,19 +122,19 @@ class BACKEND_EXPORT DynamicMemPoolBestFit {
 #endif
   const MemStatusManagerPtr &common_mem() const { return common_mem_; }
   const MemStatusManagerPtr &persistent_mem() const { return persistent_mem_; }
-  void *GetMinUsedMemoryAddr() const;
+  void *GetMinUsingMemoryAddr() const;
   // The real size by memory alloc aligned.
   virtual size_t AlignMemorySize(size_t size) const;
   // Calculate memory block required alloc size when adding the memory block.
   virtual size_t CalMemBlockAllocSize(size_t size, bool from_persistent_mem, bool need_recycle = false);
   std::set<DeviceMemPtr> mem_bufs_;
-
   // The related interface of device memory eager free.
   virtual const bool IsEnableEagerFree() const { return false; }
   virtual const bool SyncAllStreams() { return false; }
   virtual size_t AllocDeviceMemByEagerFree(size_t size, DeviceMemPtr *addr) { return 0; }
   virtual size_t FreeDeviceMemByEagerFree(const DeviceMemPtr addr, const size_t size) { return 0; }
   const size_t FreeIdleMemsByEagerFree();
+  void UpdateBorderAddr(DeviceMemPtr left_addr, DeviceMemPtr right_addr);
 
  private:
   // Find available memory buf from total pools by status, which contains idle and eager free.
@@ -196,6 +197,10 @@ class BACKEND_EXPORT DynamicMemPoolBestFit {
   size_t config_unit_size_{kDynamicMemAllocUnitSize};
   // Flag for eager free routine. This flag set to false when initializing, and set to true when triggering oom.
   bool is_trigger_eager_free_{false};
+  // Max addr
+  DeviceMemPtr max_addr_ = nullptr;
+  // Min addr
+  DeviceMemPtr min_addr_ = nullptr;
 };
 
 // Recording information for debugging the memory allocator.
