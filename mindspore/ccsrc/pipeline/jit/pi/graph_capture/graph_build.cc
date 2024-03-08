@@ -1987,6 +1987,103 @@ bool GraphBuilder::ReplaceCall(CallNode *call_node, const py::object &old_func) 
   return true;
 }
 
+namespace {
+std::string GetFuncGraphName(const py::object &func, const MindGraphBuilderPtr &subgraph) {
+  auto func_str = py::cast<std::string>(py::str(func));
+  std::vector<std::string> vec;
+  std::istringstream iss(func_str);
+  std::string str;
+  while (iss >> str) {
+    (void)vec.emplace_back(str);
+  }
+  if (vec.size() <= 1) {
+    return "";
+  }
+  auto func_name = vec[1];
+  std::replace(func_name.begin(), func_name.end(), '.', '_');
+  return func_name + "_" + std::to_string(subgraph->GetGraph()->GetCodeObj()->co_firstlineno);
+}
+}  // namespace
+
+StopTraceReason MindGraphBuilder::BuildSubGraph(CallNode *call_node, int depth, const py::object &func,
+                                                const GraphBuilderPtr &subgraph) {
+  auto sg = std::dynamic_pointer_cast<MindGraphBuilder>(subgraph);
+  InlineReason stat = InlineReason::kInline;
+  bool is_make_func = call_node->input(0)->GetOpcode() == MAKE_FUNCTION;
+  if (is_make_func) {
+    // inline MAKE_FUNCTION, need eliminate cell and free variable if the function is not dead local.
+    bool has_cell = PyTuple_GET_SIZE(sg->GetGraph()->GetCodeObj()->co_cellvars) != 0;
+    stat = has_cell ? InlineReason::kInlinePolicyDisabled : stat;
+  }
+
+  auto code = sg->GetGraph()->GetGuard();
+  MS_EXCEPTION_IF_NULL(code);
+  code->GetGuard()->Backup();
+
+  auto args = call_node->GetArgs();
+  if (PyFunction_Check(func.ptr())) {
+    args = GetNewArgs(call_node, AObject::Convert(func.ptr()));
+  }
+
+  MS_LOG(INFO) << "new subgraph->TraceRun:" << py::str(func);
+  sg->FGAddInputs(args);
+  auto reason = sg->TraceRun();
+  MS_LOG(INFO) << "new subgraph->TraceRun end:" << py::str(func);
+
+  call_node->SetSubGraph(sg->GetGraph());
+  auto sub_ret = sg->GetGraph()->GetRetVal();
+  if (sub_ret != nullptr) {
+    if (sub_ret->GetVobj()->GetPyObject().ptr() == nullptr ||
+        CheckConstPyObject(sub_ret->GetVobj()->GetPyObject().ptr())) {
+      call_node->SetVobj(sub_ret->GetVobj());
+    } else {
+      sg->FGBuilder()->SetGraphName(GetFuncGraphName(func, sg));
+      sg->FGAddOutput();
+      if (sg->FGBuilder()->graph() == nullptr) {
+        MS_LOG(ERROR) << "subgraph trace null";
+        return StopTraceReason::kTrace_Fail;
+      } else {
+        TraceGuard trace_guard(GetLocation(call_node));
+        auto res = FGBuilder()->AddNode(sg->FGBuilder()->graph(), args);
+        if (res.ptr()) {
+          MS_LOG(INFO) << "add fg node suc: ";
+          call_node->SetVobj(AbstractTraceNode::MakeAObject(res));
+        } else {
+          MS_LOG(ERROR) << "add fg node fail";
+          stat = InlineReason::kInlineInfer_Fail;
+        }
+      }
+    }
+    stat = is_make_func || ApplyInlinePolicy(sg->GetGraph()) ? stat : InlineReason::kInlinePolicyDisabled;
+  } else {
+    stat = InlineReason::kInlineInfer_Fail;
+  }
+  if (stat != InlineReason::kInline) {
+    code->GetGuard()->Rollback();
+    if (!is_make_func) {
+      /**
+       * replace function call, inline or resume capture after break graph
+       * exclude make function, because of function always a new function but code is constant
+       **/
+      stat = ReplaceCall(call_node, func) ? stat : InlineReason::kInlinePolicyDisabled;
+    }
+  } else {
+    if (!is_make_func) {
+      // exclude make function, because of function always a new function but code is constant
+      stat = GuardInlinedFunc(call_node) ? stat : InlineReason::kInlinePolicyDisabled;
+    }
+    if (stat != InlineReason::kInline) {
+      code->GetGuard()->Rollback();
+    } else {
+      code->GetGuard()->Pop();
+    }
+  }
+
+  // if stat == InlineReason::kInline, guard free variable
+  call_node->SetInlineReason(stat);
+  return reason;
+}
+
 // build sub-graph
 StopTraceReason GraphBuilder::BuildSubGraph(CallNode *call_node, int depth, const py::object &func,
                                             const GraphBuilderPtr &subgraph) {
@@ -3065,103 +3162,6 @@ bool MindGraphBuilder::WhiteListFuncCheckAndInfer(CallNode *call_node, const py:
     return true;
   }
   return false;
-}
-
-namespace {
-std::string GetFuncGraphName(const py::object &func, const MindGraphBuilderPtr &subgraph) {
-  auto func_str = py::cast<std::string>(py::str(func));
-  std::vector<std::string> vec;
-  std::istringstream iss(func_str);
-  std::string str;
-  while (iss >> str) {
-    (void)vec.emplace_back(str);
-  }
-  if (vec.size() <= 1) {
-    return "";
-  }
-  auto func_name = vec[1];
-  std::replace(func_name.begin(), func_name.end(), '.', '_');
-  return func_name + "_" + std::to_string(subgraph->GetGraph()->GetCodeObj()->co_firstlineno);
-}
-}  // namespace
-
-StopTraceReason MindGraphBuilder::BuildSubGraph(CallNode *call_node, int depth, const py::object &func,
-                                                const GraphBuilderPtr &subgraph) {
-  auto sg = std::dynamic_pointer_cast<MindGraphBuilder>(subgraph);
-  InlineReason stat = InlineReason::kInline;
-  bool is_make_func = call_node->input(0)->GetOpcode() == MAKE_FUNCTION;
-  if (is_make_func) {
-    // inline MAKE_FUNCTION, need eliminate cell and free variable if the function is not dead local.
-    bool has_cell = PyTuple_GET_SIZE(sg->GetGraph()->GetCodeObj()->co_cellvars) != 0;
-    stat = has_cell ? InlineReason::kInlinePolicyDisabled : stat;
-  }
-
-  auto code = sg->GetGraph()->GetGuard();
-  MS_EXCEPTION_IF_NULL(code);
-  code->GetGuard()->Backup();
-
-  auto args = call_node->GetArgs();
-  if (PyFunction_Check(func.ptr())) {
-    args = GetNewArgs(call_node, AObject::Convert(func.ptr()));
-  }
-
-  MS_LOG(INFO) << "new subgraph->TraceRun:" << py::str(func);
-  sg->FGAddInputs(args);
-  auto reason = sg->TraceRun();
-  MS_LOG(INFO) << "new subgraph->TraceRun end:" << py::str(func);
-
-  call_node->SetSubGraph(sg->GetGraph());
-  auto sub_ret = sg->GetGraph()->GetRetVal();
-  if (sub_ret != nullptr) {
-    if (sub_ret->GetVobj()->GetPyObject().ptr() == nullptr ||
-        CheckConstPyObject(sub_ret->GetVobj()->GetPyObject().ptr())) {
-      call_node->SetVobj(sub_ret->GetVobj());
-    } else {
-      sg->FGBuilder()->SetGraphName(GetFuncGraphName(func, sg));
-      sg->FGAddOutput();
-      if (sg->FGBuilder()->graph() == nullptr) {
-        MS_LOG(ERROR) << "subgraph trace null";
-        return StopTraceReason::kTrace_Fail;
-      } else {
-        TraceGuard trace_guard(GetLocation(call_node));
-        auto res = FGBuilder()->AddNode(sg->FGBuilder()->graph(), args);
-        if (res.ptr()) {
-          MS_LOG(INFO) << "add fg node suc: ";
-          call_node->SetVobj(AbstractTraceNode::MakeAObject(res));
-        } else {
-          MS_LOG(ERROR) << "add fg node fail";
-          stat = InlineReason::kInlineInfer_Fail;
-        }
-      }
-    }
-    stat = is_make_func || ApplyInlinePolicy(sg->GetGraph()) ? stat : InlineReason::kInlinePolicyDisabled;
-  } else {
-    stat = InlineReason::kInlineInfer_Fail;
-  }
-  if (stat != InlineReason::kInline) {
-    code->GetGuard()->Rollback();
-    if (!is_make_func) {
-      /**
-       * replace function call, inline or resume capture after break graph
-       * exclude make function, because of function always a new function but code is constant
-       **/
-      stat = ReplaceCall(call_node, func) ? stat : InlineReason::kInlinePolicyDisabled;
-    }
-  } else {
-    if (!is_make_func) {
-      // exclude make function, because of function always a new function but code is constant
-      stat = GuardInlinedFunc(call_node) ? stat : InlineReason::kInlinePolicyDisabled;
-    }
-    if (stat != InlineReason::kInline) {
-      code->GetGuard()->Rollback();
-    } else {
-      code->GetGuard()->Pop();
-    }
-  }
-
-  // if stat == InlineReason::kInline, guard free variable
-  call_node->SetInlineReason(stat);
-  return reason;
 }
 
 void MindGraphBuilder::FGAddInputs(const std::vector<py::object> &args) {
