@@ -205,8 +205,14 @@ class GraphBuilder {
   // return false if has unsupported bytecode
   bool DoByteCode(const Instr &instr);
 
-  // general value node for UNPACK_SEQUENCE, UNPACK_EX
-  void GenIndexItemGeneral(ValueNode *iterable, int i, int j);
+  // unpack elements
+  bool UnpackElements(ValueNode *);
+
+  // unpack elements
+  bool UnpackSequenceElements(ValueNode *);
+
+  // unpack object elements as LOAD_CONST
+  std::vector<ValueNode *> UnpackConstObject(const py::object &);
 
   // return true if not inline
   virtual bool WhiteListFuncCheckAndInfer(CallNode *, const py::object &f);
@@ -256,10 +262,14 @@ class GraphBuilder {
   bool DoListToTuple(const Instr &instr);
   bool DoGetIter(const Instr &instr);
   bool DoMakeFunction(const Instr &instr);
+  AObject *InferUnary(ValueNode *, const Instr &instr);
   virtual bool DoUnary(const Instr &instr);
+  AObject *InferBinary(ValueNode *, ValueNode *, const Instr &instr);
   virtual bool DoBinary(const Instr &instr);
   virtual bool DoIsOp(const Instr &instr);
   virtual bool DoBinaryMul(const Instr &instr);
+  bool DoBinaryAdd(const Instr &instr);
+  bool DoInplaceAdd(const Instr &instr);
   virtual bool DoCompare(const Instr &instr);
   virtual bool DoBuildOp(const Instr &instr);
   bool DoMergeOp(const Instr &instr);
