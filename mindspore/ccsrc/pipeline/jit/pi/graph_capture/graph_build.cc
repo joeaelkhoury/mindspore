@@ -2281,7 +2281,6 @@ ValueNode *GetBoundSelf(CallNode *call_node) {
     case AObject::kTypeTraceNode:
     case AObject::kTypeFunction:
       break;
-    }
     default:
       MS_LOG(INTERNAL_EXCEPTION) << "unimplemented type " << vo->ToString();
       break;
