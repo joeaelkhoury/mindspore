@@ -149,9 +149,7 @@ void AclSomas::CommunicationTensorProcess(const std::vector<somas::SomasTensorPt
 
 bool AclSomas::NeedContiguous(const std::vector<size_t> &inputs) const { return inputs.size() > ALONE; }
 
-bool AclSomas::NeedReuseGraphOutput() const {
-  return tensors_list_.size() > kTensorsSize;
-}
+bool AclSomas::NeedReuseGraphOutput() const { return true; }
 }  // namespace ascend
 }  // namespace device
 }  // namespace mindspore
