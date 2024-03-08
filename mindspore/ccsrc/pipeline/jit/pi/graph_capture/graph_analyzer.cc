@@ -334,6 +334,13 @@ void GraphAnalyzer::Analyze() {
       graph_->GetSideEffect()->GetSideEffectInstrs().erase(item.first);
     }
   }
+  for (auto item : graph_->GetSideEffectNodes()) {
+    if (item->bci() >= graph_->GetStopTraceBci()) {
+      graph_->GetSideEffectNodes().erase(
+        std::remove(graph_->GetSideEffectNodes().begin(), graph_->GetSideEffectNodes().end(), item),
+        graph_->GetSideEffectNodes().end());
+    }
+  }
   CollectInputs();
 
   need_interpret_ = true;
@@ -354,6 +361,9 @@ void GraphAnalyzer::Analyze() {
     need_interpret_ = false;
   }
   if (!graph_->GetSideEffect()->GetSideEffectInstrs().empty()) {
+    need_interpret_ = true;
+  }
+  if (!graph_->GetSideEffect()->GetGlobalList().empty()) {
     need_interpret_ = true;
   }
 }
